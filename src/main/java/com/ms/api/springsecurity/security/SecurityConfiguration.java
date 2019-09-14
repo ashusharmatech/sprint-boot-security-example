@@ -1,10 +1,12 @@
 package com.ms.api.springsecurity.security;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -12,38 +14,44 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
 
+    @Autowired
+    UserDetailsService customUserDetailsService;
+
     /**
-     *  Authentication method
+     * Authentication method
+     *
      * @param auth
      * @throws Exception
      */
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-
-        auth.inMemoryAuthentication()
-                .withUser("blah").password("blah").roles("USER").and()
-                .withUser("ashu").password("ashu").roles("ADMIN").and()
-                .withUser("test").password("test").roles("USER");
+        auth.userDetailsService(customUserDetailsService);
 
     }
 
     /**
      * Authorization
-     * @param http
+     *
+     * @param httpSecurity
      * @throws Exception
      */
     @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    protected void configure(HttpSecurity httpSecurity) throws Exception {
 
-        http.authorizeRequests()
+        httpSecurity.authorizeRequests()
                 .antMatchers("/admin").hasRole("ADMIN")
-                .antMatchers("/user").hasAnyRole("ADMIN","USER")
-                .antMatchers("/").permitAll()
+                .antMatchers("/user").hasAnyRole("ADMIN", "USER")
+                //.and().csrf().ignoringAntMatchers("/h2-console/**")
                 .and().formLogin();
+        httpSecurity.csrf().disable();
+        httpSecurity.headers().frameOptions().disable();
+        httpSecurity.authorizeRequests().antMatchers("/").permitAll().and()
+                .authorizeRequests().antMatchers("/console/**").permitAll();
+
     }
 
     @Bean
-    public PasswordEncoder getPasswordEncoder(){
+    public PasswordEncoder getPasswordEncoder() {
         return NoOpPasswordEncoder.getInstance();
     }
 }
